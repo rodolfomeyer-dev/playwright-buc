@@ -1,0 +1,61 @@
+name: BUC Playwright Tests - Diario a las 9 AM Chile
+
+on:
+  schedule:
+    - cron: '0 12 * * 1-5'   # Lunes a viernes 9:00 AM Chile
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Instalar navegadores Playwright
+        run: npx playwright install --with-deps
+
+      - name: Ejecutar tests
+        env:
+          BUC_USER: ${{ secrets.BUC_USER }}
+          BUC_PASS: ${{ secrets.BUC_PASS }}
+        run: npx playwright test
+
+      - name: Subir reporte como artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+
+      - name: Enviar reporte por correo
+        if: always()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.EMAIL_USER }}
+          password: ${{ secrets.EMAIL_PASS }}
+          subject: "Reporte BUC Playwright #${{ github.run_number }} - ${{ job.status == 'success' && 'ÉXITO' || 'FALLÓ' }}"
+          to: rodolfomeyer.dev@gmail.com
+          from: ${{ secrets.EMAIL_USER }}
+          body: |
+            ¡Hola Rodo!
+            
+            Las pruebas del BUC acaban de correr.
+            Estado: ${{ job.status == 'success' && 'TODOS PASARON' || 'ALGUNO FALLÓ' }}
+            
+            Ver reporte completo aquí:
+            https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          html_body: true
+          convert_markdown: true
+          attachments: playwright-report/**
