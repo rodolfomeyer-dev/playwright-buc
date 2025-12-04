@@ -1,0 +1,12 @@
+version: '3.8'
+services:
+  playwright:
+    build: .
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - ./evidencias:/app/evidencias
+    environment:
+      - BUC_USER=${BUC_USER}
+      - BUC_PASS=${BUC_PASS}
+    network_mode: "host"
