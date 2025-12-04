@@ -1,22 +1,23 @@
-import 'dotenv/config';   // ← ESTA LÍNEA ES OBLIGATORIA
-
+// playwright.config.ts
 import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests',
-  timeout: 60000,
   fullyParallel: true,
-  retries: 1,
-  reporter: 'html',
+  retries: process.env.CI ? 2 : 0,
+  workers: process.env.CI ? 2 : undefined,
+  reporter: [['html', { open: 'never' }]],
+  
   use: {
-    headless: false,           // cambia a true cuando quieras CI
-    viewport: { width: 1920, height: 1080 },
-    actionTimeout: 20000,
-    navigationTimeout: 30000,
+    // ESTA LÍNEA ES LA CLAVE → HEADLESS EN LA NUBE
+    headless: !!process.env.CI,
+    ignoreHTTPSErrors: true,
+    viewport: { width: 1280, height: 720 },
+    actionTimeout: 30000,
+    video: 'retain-on-failure',
     trace: 'on-first-retry',
-    video: 'on-first-retry',
-    baseURL: 'http://192.168.84.40/FrontEnd/',
   },
+
   projects: [
     {
       name: 'chromium',
