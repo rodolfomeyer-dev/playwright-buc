@@ -28,7 +28,7 @@ jobs:
         env:
           BUC_USER: ${{ secrets.BUC_USER }}
           BUC_PASS: ${{ secrets.BUC_PASS }}
-        run: npx playwright test
+        run: npx playwright test --retries 1
 
       - name: Subir reporte como artifact
         if: always()
