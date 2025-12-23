@@ -1,0 +1,140 @@
+Navigating to: http://pruebas-bas2:***@192.168.154.221:8070/HpUxaLinux/BUC/buc/?usuEjeFor=mgarayv
+Page loaded.
+Title: BUC - Base ├Ünica de Clientes
+Selected Rut
+Filled RUT 13684895
+Pressed Enter
+Inputs count after Enter: 14
+Attempting direct form submission on #form1...
+Waited 5s after submit
+Content Body Preview: <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1 Transitional//EN"><html xmlns="http://www.w3.org/1999/xhtml"><head>
+    <!-- SOLO PARA DESARROLLO Y TESTING -->
+    <meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0"><meta http-equiv="Cache-Control" content="no-store"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta http-equiv="x-ua-compatible" content="IE=8"><meta http-equiv="content-type" content="text/html; charset=utf-8"><title>
+	BUC - Base ├Ünica de Clientes
+</title><link rel="shortcut icon" href="logotipo.ico">
+    <link rel="icon" type="image/png" href="Content/images/logotipo.ico">
+    <link rel="stylesheet" type="text/css" href="Content/CF_BUC_base.css">
+    <link rel="stylesheet" type="text/css" href="Content/CF_jquery-ui.css">
+    <link rel="stylesheet" type="text/css" href="Content/CF_jquery.dataTables.css">
+    <link rel="stylesheet" type="text/css" href="Content/css/font-awesome.min.css">
+    <link rel="stylesheet" type="text/css" href="Content/popup.css">
+    <link rel="stylesheet" type="text/css" href="Content/Utiles.Modal.css">
+    <link rel="stylesheet" type="text/css" href="Content/DatosContacto/FloatDiv.css">
+
+    <script type="text/javascript" src="Scripts/jquery-1.11.1.min.js"></script>
+    <script type="text/javascript" src="Scripts/jquery-ui-1.11.js"></script>
+    <script type="text/javascript" src="Scripts/jquery.Rut.min.js"></script>
+    <script type="text/javascript" src="Scripts/jquery.dataTables.js"></script>
+    <script type="text/javascript" src="Scripts/MediosDigitalesSAR51496.js"></script>
+    <script type="text/javascript" src="Scripts/BI-SAR53250.js"></script>
+    <script type="text/javascript" src="Scripts/BUC.js"></script>
+
+    <!--[if lt IE 9]>
+        <script src="Scripts/html5.js"></script>
+        <link rel="stylesheet" type="text/css" href="Content/BUC_base_IE.css" />
+    <![endif]-->
+    
+    <script type="text/javascript" src="Scripts/SincronizacionSAR45950.js"></script>
+
+    <style type="text/css">
+        .no-close .ui-dialog-titlebar-close {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <!--[if lte IE 7]>
+    <div class="warning">┬íAtenci├│n! El navegador que utiliza no es compatible con esta aplicaci├│n y no podr├í utilizarla correctamente. Le sugerimos
+    actualizar a una versi├│n <a target="_blank" href="http://www.microsoft.com/es-cl/download/internet-explorer-8-details.aspx">actual</a> o utilizar otro navegador compatible como
+    <a target="_blank" href="http://www.google.cl/intl/es-419/chrome/">Google Chrome</a> o <a target="_blank" href="https://www.mozilla.org/es-ES/firefox/new/">Mozilla Firefox</a>
+    </div>
+    <![endif]-->
+    <div id="FlashContent" class="flashCont">
+
+</div>
+    <div class="main-container">
+        <div class="user-bar">
+            <span id="lblUsuario" class="nombreUsuario">ENRIQUE TOMAS MENA PAREDES</span>
+            
+        </div>
+        <div class="header">
+            <div class="logo"></div>
+            <ul class="menu"><li><a verificarhechos="False" class="menuBUC active" texto="Inicio" runat="server" href="/HpUxaLinux/BUC/buc/Home.aspx">Inicio</a></li><li><a verificarhechos="False" class="menuBUC " texto="Guias y Manuales" runat="server" href="/HpUxaLinux/BUC/buc/GuiasManuales.aspx">Guias y Manuales</a></li></ul>
+        </div>
+
+        <form method="post" action="./?usuEjeFor=mgarayv" id="form1">
+<div class="aspNetHidden">
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="3rl57+yUJN/3OJHniFuxBowtqbrS9kXuUX8OPetoylqTnDvylNpvqh8n4n7lC9JkOCMDWwNSOo4EZAeEaWzY4ccuV2qpRRf7Yh2LWE3G0a0=">
+</div>
+
+<div class="aspNetHidden">
+
+	<input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="4373EC08">
+	<input type="hidden" name="__EVENTVALIDATION" id="__EVENTVALIDATION" value="pwM6uxqh8Ry0ldA4hA1qx8g0GmYF2FO3UHTuFh/yH2eradab5EOy0kli9jmnq7NUip4goE1iuEoL8Q9X/71Pfrw3iaTKCFnj1eKkt2yYnQpXwkruX3OeDR3n9/WMNYIi">
+</div>
+            <div class="container">
+                
+
+    <!--[if lt IE 9]>
+    <script>
+        $("#aguja").val('NOMBRES');
+    </script>
+    <![endif]-->
+
+
+    <style type="text/css">
+        .triangle-obtuse {
+            position: absolute;
+            top: 50px;
+        }
+    </style>
+
+    <div class="row">
+        <div class="col-lg-12">
+            <h1>Busqueda Avanzada</h1>
+            <p>Encuentra los datos que requieres, mediante el siguiente formulario.</p>
+        </div>
+    </div>
+    <div class="row">
+        <br>
+        <div class="col-lg-6">
+            <label class="form-label">┬┐Qu├® deseo buscar?</label>
+            <select id="opcion" class="form-control" style="width: 100%">
+                <option value="0">SELECCIONE UNA OPCI├ôN</option>
+                <option value="Rut">CLIENTES POR SU RUT</option>
+                <option value="Poliza">N├ÜMERO DE P├ôLIZA</option>
+                <option value="APaterno">APELLIDO PATERNO</option>
+                <option value="AMaterno">APELLIDO MATERNO</option>
+                <
+Found 27 key elements:
+ - Tag: A, ID: null, Class: menuBUC active, Text: "INICIO"
+ - Tag: A, ID: null, Class: menuBUC , Text: "GUIAS Y MANUALES"
+ - Tag: A, ID: Buscar, Class: btn blue disabled, Text: "BUSCAR"
+ - Tag: TABLE, ID: datos, Class: buc, Text: "Rut
+                        P├│liza
+                        Nombre o Raz├│n Social
+                        Tipo Persona
+                        Rol"
+ - Tag: A, ID: btnAceptar, Class: btn blue, Text: "Aceptar"
+ - Tag: INPUT, ID: btnSincronizar, Class: btn blue, Text: ""
+ - Tag: INPUT, ID: btnNoSincronizar, Class: btn grey, Text: ""
+ - Tag: A, ID: ObtieneAyuda, Class: null, Text: "┬┐Necesitas Ayuda?"
+ - Tag: A, ID: null, Class: atencion, Text: ""
+ - Tag: A, ID: null, Class: links, Text: ""
+ - Tag: A, ID: null, Class: reportes, Text: ""
+ - Tag: A, ID: null, Class: reclamos, Text: ""
+ - Tag: A, ID: null, Class: close, Text: ""
+ - Tag: A, ID: null, Class: , Text: "Seguro Pensionados 2.0"
+ - Tag: A, ID: null, Class: , Text: "P├│lizas no recaudadas"
+ - Tag: A, ID: null, Class: , Text: "Envio de Remesas"
+ - Tag: A, ID: null, Class: , Text: "Admin. de Remesables"
+ - Tag: A, ID: null, Class: , Text: "Consulta de Remesas"
+ - Tag: A, ID: null, Class: , Text: "Remesables por cliente"
+ - Tag: A, ID: null, Class: , Text: "Consulta por RUT"
+ - Tag: A, ID: null, Class: , Text: "Por RUT"
+ - Tag: A, ID: null, Class: , Text: "Por Solicitud"
+ - Tag: A, ID: null, Class: close, Text: ""
+ - Tag: A, ID: null, Class: close, Text: ""
+ - Tag: A, ID: verReclamos, Class: hechosAtencion, Text: "Ver Reclamos"
+ - Tag: A, ID: cerrarMsg, Class: btn blue visible botonDerechaPopUp, Text: "Cerrar"
+ - Tag: A, ID: linkDescargaAutDocViaMail, Class: null, Text: "Imprimir formato de Autorizaci├│n de env├¡o de antecedentes v├¡a mail"

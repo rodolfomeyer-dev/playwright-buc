@@ -1,0 +1,37 @@
+
+Running 1 test using 1 worker
+
+--- INICIANDO LECTURA DE DATOS ---
+
+­ƒôü Abriendo archivo: C:\Users\Vidata11\OneDrive\Documentos\Antigravity\data\Ruts.xlsx
+
+Ô£à Leyendo hoja: "Registros Originales" (502 filas)
+   Columnas encontradas: RUT(3), NOMBRE(7), PATERNO(5), MATERNO(6)
+
+­ƒôè Excel cargado: 500 registros encontrados
+
+   Primeros 3 registros:
+   1. RUT: "13684895-K" | Nombre: "HUGO AMADOR GUZMAN BASTIAS"
+   2. RUT: "13253025-4" | Nombre: "RICARDO FELIPE ZURITA ALVARADO"
+   3. RUT: "13902062-6" | Nombre: "VICTOR MANUEL ZURITA ALVARADO"
+
+­ƒöä Procesando[1/1]RUT: 13684895-K 
+   Ô×í´©Å Navegando a BUC TEST...
+      (URL con credenciales inyectadas: http://192.168.154.221:8070...?usuEjeFor=mgarayv)
+      (Click en #Buscar realizado)
+      Rows found: Content="13.684.895-k	PABLO SERGIO MONCADA PARRA	NATURAL	VER M├üS [+]"
+   Ô×í´©Å Navegando a BUC PROD...
+      (URL con credenciales inyectadas: http://192.168.154.54:8070...?usuEjeFor=amunoz)
+      (Click en #Buscar realizado)
+      Rows found: Content="13.684.895-k	HUGO AMADOR GUZMAN BASTIAS	NATURAL	VER M├üS [+]"
+--- GENERANDO REPORTE FINAL ---
+
+­ƒôä Reporte generado: C:\Users\Vidata11\OneDrive\Documentos\Antigravity\evidencias\REPORTE_COMPARACION_BUC.xlsx
+  Ô£ô  1 [chromium] ÔÇ║ tests\buc-comparacion.spec.ts:55:9 ÔÇ║ Automatizaci├│n BUC - Comparaci├│n de Ambientes ÔÇ║ Comparar RUTs en ambos ambientes (6.0s)
+
+  1 passed (8.1s)
+
+To open last HTML report run:
+[36m[39m
+[36m  npx playwright show-report[39m
+[36m[39m
