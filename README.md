@@ -1,3 +1,4 @@
+
 # 🤖 Automatización BUC - Validación de Anonimización
 
 Sistema de automatización con Playwright para validar que los datos de clientes estén correctamente anonimizados en el entorno de TEST comparándolos con PRODUCCIÓN.
@@ -180,3 +181,4 @@ Para dudas o problemas, revisar los logs del test que muestran:
 ---
 
 **Última actualización:** Diciembre 2025
+
