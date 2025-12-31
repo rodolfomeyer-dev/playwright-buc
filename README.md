@@ -1,184 +1,60 @@
+# BUC - Validación de Identidades (Versión 7 Definitiva) 🛡️🤖
 
-# 🤖 Automatización BUC - Validación de Anonimización
+Este proyecto automatiza la validación cruzada de identidades entre ambientes **ANONIMIZADOS** y **NO_ANONIMIZADOS** del portal BUC, utilizando Playwright y ExcelJS.
 
-Sistema de automatización con Playwright para validar que los datos de clientes estén correctamente anonimizados en el entorno de TEST comparándolos con PRODUCCIÓN.
+## 🚀 Versión 7 - Especificaciones Finales
 
-## 📋 ¿Qué hace este proyecto?
-
-1. **Lee un Excel** con RUTs y nombres de clientes
-2. **Busca cada RUT** en dos entornos:
-   - **TEST** (http://192.168.84.40) → Debería tener datos anonimizados
-   - **PROD** (http://192.168.154.54:8070) → Tiene datos reales
-3. **Compara los resultados** y valida que TEST esté anonimizado
-4. **Genera un reporte Excel** con formato condicional (verde/rojo)
-
-## 🔐 Autenticación
-
-El sistema usa **autenticación por formulario web HTML**:
-
-1. Navega a la URL del entorno (TEST o PROD)
-2. Espera a que aparezca el formulario de login
-3. Ingresa las credenciales en los campos:
-   - Campo "Nombre de usuario"
-   - Campo de contraseña (type="password")
-4. Hace clic en el botón "Acceder"
-5. Verifica que se haya accedido correctamente buscando el texto "Búsqueda avanzada"
-
-**Nota:** Las credenciales están configuradas en `helpers/login.ts` y se ingresan automáticamente en el formulario de la página web.
-
-## 🚀 Instalación
-
-```bash
-# 1. Instalar dependencias
-npm install
-
-# 2. Instalar navegadores de Playwright
-npx playwright install chromium
-```
-
-## 📁 Estructura del proyecto
-
-```
-.
-├── helpers/               # Funciones reutilizables
-│   ├── login.ts          # Login por formulario HTML web
-│   ├── busqueda.ts       # Búsqueda por RUT en BUC
-│   └── excel.ts          # Lectura/escritura de Excel
-├── tests/
-│   └── validar-anonimizacion.spec.ts  # Test principal
-├── scripts/
-│   └── generar-excel-ejemplo.ts       # Genera Excel de ejemplo
-├── ruts-a-validar.xlsx   # ← DEBES CREAR ESTE ARCHIVO
-└── evidencias/           # Reportes generados (se crea automáticamente)
-```
-
-## 📊 Preparar el Excel de entrada
-
-### Opción 1: Usar el ejemplo
-```bash
-# Generar Excel de ejemplo con 5 RUTs
-npx ts-node scripts/generar-excel-ejemplo.ts
-
-# Renombrarlo para usar en el test
-mv ruts-a-validar-ejemplo.xlsx ruts-a-validar.xlsx
-```
-
-### Opción 2: Crear tu propio Excel
-Crea un archivo `ruts-a-validar.xlsx` con esta estructura:
-
-| PNT_RUT  | PNT_NOMBRE_COMPLETO    |
-|----------|------------------------|
-| 12345678 | JUAN PEREZ GONZALEZ    |
-| 23456789 | MARIA RODRIGUEZ LOPEZ  |
-| ...      | ...                    |
-
-**Notas importantes:**
-- Primera fila = encabezados
-- Columna A = RUT (solo números, sin puntos ni guiones)
-- Columna B = Nombre completo real (el que debería estar en PROD)
-
-## 🧪 Ejecutar el test
-
-### Ejecución normal (headless)
-```bash
-npm test
-```
-
-### Ver el navegador en acción
-```bash
-npm run test:headed
-```
-
-### Modo debug paso a paso
-```bash
-npm run test:debug
-```
-
-### Ver reporte HTML
-```bash
-npm run report
-```
-
-## 📄 Reporte generado
-
-El test genera un Excel en: `evidencias/REPORTE_ANONIMIZACION.xlsx`
-
-**Columnas:**
-- `RUT` - RUT del cliente
-- `Nombre esperado` - Nombre real que debería estar en PROD
-- `Nombre en TEST` - Lo que encontró en TEST
-- `Nombre en PROD` - Lo que encontró en PROD
-- `ANONIMIZADO TEST` - 🟢 SÍ / 🔴 NO
-- `ANONIMIZADO PROD` - 🟢 NO / 🔴 SÍ (esperamos que NO esté anonimizado)
-- `ESTADO FINAL` - ✅ VÁLIDO / ⚠️ REVISAR
-
-**Formato condicional:**
-- 🟢 Verde = Comportamiento correcto
-- 🔴 Rojo = Comportamiento incorrecto
-- 🟡 Naranja = Requiere revisión manual
-
-## ⚙️ Configuración de entornos
-
-Las credenciales están en `helpers/login.ts`:
-
-```typescript
-ENTORNOS = {
-  TEST: {
-    url: 'http://192.168.84.40/FrontEnd/?usuEjeFor=mgarayv',
-    usuario: 'mgarayv',
-    password: 'Equipo111',
-  },
-  PROD: {
-    url: 'http://192.168.154.54:8070/HpUxaLinux/BUC/buc/?usuEjeFor=pruebas-bas2',
-    usuario: 'pruebas-bas2',
-    password: 'Equipo.1125#',
-  },
-}
-```
-
-## 🐛 Solución de problemas
-
-### Error: "Falta ruts-a-validar.xlsx"
-Debes crear el archivo Excel de entrada (ver [Preparar el Excel](#-preparar-el-excel-de-entrada))
-
-### Timeouts frecuentes
-Los servidores BUC son lentos. Ya está configurado con:
-- 120 segundos para navegación
-- 5 minutos timeout total por test
-
-Si aún falla, edita `playwright.config.ts` y aumenta los valores.
-
-### Nombres no encontrados
-Verifica que:
-1. El selector de búsqueda sea "CLIENTES POR SU RUT"
-2. El RUT esté sin puntos ni guiones
-3. El servidor esté disponible (ping a las IPs)
-
-## 📈 Próximas mejoras
-
-- [ ] Envío automático de reporte por correo
-- [ ] Dashboard web con resumen visual
-- [ ] Ejecución paralela optimizada
-- [ ] Integración con CI/CD
-- [ ] Notificaciones Slack/Teams
-
-## 🤝 Contribuir
-
-Este proyecto está en desarrollo activo. Para agregar nuevos tests:
-
-1. Crea un nuevo archivo en `tests/`
-2. Importa los helpers de `helpers/`
-3. Sigue la estructura del test principal
-
-## 📞 Soporte
-
-Para dudas o problemas, revisar los logs del test que muestran:
-- URL de cada conexión
-- RUT buscado
-- Nombre encontrado
-- Estado de anonimización
+La versión actual (V7) implementa reglas de negocio estrictas:
+- **Concatenación de RUT**: Se utiliza `BUCPE_RUT + BUCPE_DV` para comparaciones de igualdad absoluta.
+- **Normalización Minimalista**: Solo `toUpperCase()`, `trim()` y eliminación de tildes. No se reordenan palabras (Preserva la exactitud del portal).
+- **Validación Cruzada**:
+    - **NO_ANONIMIZADO**: RUT y Nombre deben coincidir con la planilla original. El nombre **no** debe ser el enmascarado.
+    - **ANONIMIZADO**: RUT debe coincidir, pero el Nombre **no** debe ser el original y **sí** debe ser el enmascarado.
 
 ---
 
-**Última actualización:** Diciembre 2025
+## 📁 Estructura del Proyecto
 
+- `tests/validar-v7.spec.ts`: Core de validación con lógica de reintentos infinitos y modo resumable.
+- `helpers/busqueda.ts`: Lógica de interacción con el portal y extracción dinámica de tablas.
+- `helpers/excel.ts`: Utilidades para lectura de 500 registros y generación de reportes base.
+- `scripts/generar-reporte-v7.ts`: Generador del **Informe Profesional de 11 columnas**.
+- `scripts/generar-dashboard-v6.ts`: Generador del tablero web interactivo.
+- `data/Ruts.xlsx`: Archivo fuente con las hojas "Registros Originales" y "Registros enmascarados".
+
+---
+
+## 🛠️ Cómo Ejecutar
+
+### 1. Preparar Datos
+Genera el archivo temporal para el test runner:
+```powershell
+npx ts-node scripts/preparar-datos-v6.ts
+```
+
+### 2. Ejecutar Piloto (5 registros)
+```powershell
+$env:LIMIT=5; npx playwright test tests/validar-v7.spec.ts --workers=1
+```
+
+### 3. Ejecutar Carga Completa (500 registros)
+```powershell
+$env:LIMIT=500; npx playwright test tests/validar-v7.spec.ts --workers=1
+```
+
+---
+
+## 📊 Entregables Automáticos
+
+Al finalizar cada ejecución, el robot genera automáticamente en la carpeta `evidencias/`:
+1. **Informe_Validacion_BUC_V7_FINAL.xlsx**: Reporte ejecutivo con 11 columnas técnicas y celdas colorizadas.
+2. **DASHBOARD_V7.html**: Tablero web para visualización rápida de resultados.
+3. **Videos y Screenshots**: Evidencia visual completa de cada interacción en ambos ambientes.
+
+---
+
+## 🛡️ Manejo de Continuidad
+El proyecto guarda el progreso en `PROGRESO_V7.json`. Si la VPN o la conexión fallan, simplemente reinicia el comando y el robot **saltará los registros ya validados exitosamente**, retomando desde el último punto de falla.
+
+---
+*Desarrollado para el equipo de Auditoría/QA - BUC*
