@@ -1,200 +1,140 @@
+
 import ExcelJS from 'exceljs';
 import fs from 'fs';
+import path from 'path';
+
+export function normalizarV7(txt: string): string {
+    return (txt || "")
+        .toUpperCase()
+        .trim()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // Quitar tildes
+}
 
 /**
- * Estructura de datos de entrada (Excel original)
+ * Representa una fila de entrada desde el Excel (V6 Strict Mode)
  */
 export interface RegistroEntrada {
     rut: string;
-    nombreEsperado: string;
+    dv: string;
+    fullRut?: string;
+    nombre: string;
+    paterno: string;
+    materno: string;
+    nombreCompletoRef?: string;
 }
 
 /**
- * Resultado de validación completa TEST vs PROD
+ * Resultado de validación unificada (Lado a Lado)
  */
-export interface ResultadoValidacion {
+export interface ResultadoSideBySide {
     RUT: string;
-    'Nombre esperado': string;
-    'Nombre en TEST': string;
-    'Nombre en PROD': string;
-    'ANONIMIZADO TEST': string;
-    'ANONIMIZADO PROD': string;
-    'ESTADO FINAL': string;
+    'Nombre Esperado (Planilla)': string;
+    'N. Encontrado (ANON)': string;
+    'RUT Encontrado (ANON)': string;
+    'N. Encontrado (NO ANON)': string;
+    'RUT Encontrado (NO ANON)': string;
+    'Coinciden?': string;
+    'Observaciones'?: string;
 }
 
 /**
- * Lee el archivo Excel de entrada con RUTs a validar
- * 
- * @param rutaExcel - Ruta al archivo Excel
- * @returns Array de registros con RUT y nombre esperado
+ * Extrae el valor de una celda como string de forma segura
  */
-export async function leerExcelEntrada(rutaExcel: string): Promise<RegistroEntrada[]> {
-    if (!fs.existsSync(rutaExcel)) {
-        throw new Error(`❌ Archivo no encontrado: ${rutaExcel}`);
+function getCellValueAsString(cell: ExcelJS.Cell): string {
+    const value = cell.value;
+    if (value === null || value === undefined) return "";
+    if (typeof value === 'object') {
+        if ('result' in value) return String(value.result || "");
+        if ('richText' in value) return value.richText.map(rt => rt.text).join("");
+        if ('text' in value) return String(value.text || "");
     }
+    return String(value);
+}
 
-    console.log(`\n📁 Abriendo archivo: ${rutaExcel}`);
+/**
+ * Lee la hoja especificada del Excel con mapeo V6 (Columnas 3 a 8)
+ */
+export async function leerExcelEntrada(
+    filePath: string,
+    sheetName: string
+): Promise<RegistroEntrada[]> {
+    if (!fs.existsSync(filePath)) {
+        throw new Error(`Archivo no encontrado: ${filePath}`);
+    }
 
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile(rutaExcel);
+    await workbook.xlsx.readFile(filePath);
+    const worksheet = workbook.getWorksheet(sheetName);
 
-    // Usar la primera hoja disponible
-    const sheet = workbook.worksheets[0];
-
-    if (!sheet) {
-        throw new Error(`❌ No se encontró ninguna hoja en el Excel`);
+    if (!worksheet) {
+        throw new Error(`Hoja "${sheetName}" no encontrada en ${filePath}`);
     }
 
-    console.log(`\n✅ Leyendo hoja: "${sheet.name}" (${sheet.rowCount} filas)`);
+    console.log(`\n✅ Leyendo hoja: "${worksheet.name}" (V6/V7 Strict Mode)`);
 
     const registros: RegistroEntrada[] = [];
 
-    // Encontrar índices de columnas (Header en Fila 2)
-    const headerRow = sheet.getRow(2);
-    let colRutIndex = -1;
-    let colDvIndex = -1;
-    let colNombreIndex = -1;
-    let colPaternoIndex = -1;
-    let colMaternoIndex = -1;
+    worksheet.eachRow((row, rowNumber) => {
+        if (rowNumber < 2) return; // Saltar cabecera
 
-    headerRow.eachCell((cell, colNumber) => {
-        const header = (cell.value?.toString() || '').trim();
-        if (header === 'BUCPE_RUT') colRutIndex = colNumber;
-        if (header === 'BUCPE_DV') colDvIndex = colNumber;
-        if (header === 'BUCPE_NATNOMBRE') colNombreIndex = colNumber;
-        if (header === 'BUCPE_NATPATERNO') colPaternoIndex = colNumber;
-        if (header === 'BUCPE_NATMATERNO') colMaternoIndex = colNumber;
-    });
+        const rutBase = getCellValueAsString(row.getCell(3)).trim();
+        const dv = getCellValueAsString(row.getCell(4)).trim();
+        const paterno = getCellValueAsString(row.getCell(5)).trim();
+        const materno = getCellValueAsString(row.getCell(6)).trim();
+        const nombres = getCellValueAsString(row.getCell(7)).trim();
+        const nombreRef = getCellValueAsString(row.getCell(8)).trim();
 
-    if (colRutIndex === -1) {
-        throw new Error(`❌ No se encontró columna BUCPE_RUT`);
-    }
-
-    console.log(`   Columnas encontradas: RUT(${colRutIndex}), NOMBRE(${colNombreIndex}), PATERNO(${colPaternoIndex}), MATERNO(${colMaternoIndex})`);
-
-    sheet.eachRow((row, rowNumber) => {
-        // Saltar filas de header (1 y 2)
-        if (rowNumber <= 2) return;
-
-        const rutCell = row.getCell(colRutIndex);
-        const rutValue = (rutCell.text || rutCell.value?.toString() || '').trim();
-
-        if (rutValue && rutValue !== '[object Object]') {
-            // Obtener DV (si la columna existe)
-            let rutFinal = rutValue;
-            if (colDvIndex !== -1) {
-                const dv = (row.getCell(colDvIndex).value?.toString() || '').trim();
-                // Si hay DV, lo usamos. Concatenamos con guión según práctica común
-                if (dv) {
-                    rutFinal = `${rutValue}-${dv}`;
-                }
-            }
-
-            // Construir nombre completo
-            const nombre = colNombreIndex !== -1 ? (row.getCell(colNombreIndex).value?.toString() || '').trim() : '';
-            const paterno = colPaternoIndex !== -1 ? (row.getCell(colPaternoIndex).value?.toString() || '').trim() : '';
-            const materno = colMaternoIndex !== -1 ? (row.getCell(colMaternoIndex).value?.toString() || '').trim() : '';
-
-            // Formato: NOMBRE PATERNO MATERNO (Ajustar si es necesario)
-            const nombreCompleto = [nombre, paterno, materno].filter(Boolean).join(' ');
-
+        if (rutBase && rutBase !== '[object Object]' && !rutBase.includes('BUCPE_RUT') && !rutBase.includes('COD_MARCA')) {
             registros.push({
-                rut: rutFinal,
-                nombreEsperado: nombreCompleto
+                rut: rutBase,
+                dv: dv,
+                fullRut: rutBase + dv,
+                nombre: nombres,
+                paterno: paterno,
+                materno: materno,
+                nombreCompletoRef: nombreRef
             });
         }
     });
 
-    console.log(`\n📊 Excel cargado: ${registros.length} registros encontrados`);
-
-    if (registros.length > 0) {
-        console.log(`\n   Primeros 3 registros:`);
-        registros.slice(0, 3).forEach((reg, idx) => {
-            console.log(`   ${idx + 1}. RUT: "${reg.rut}" | Nombre: "${reg.nombreEsperado}"`);
-        });
-    }
-
+    console.log(`📊 Excel cargado: ${registros.length} registros encontrados`);
     return registros;
 }
 
 /**
- * Genera el reporte Excel final con formato condicional
- * 
- * @param resultados - Array de resultados de validación
- * @param rutaSalida - Ruta donde guardar el reporte
+ * Genera el reporte Excel Lado a Lado (v6.0)
  */
-export async function generarReporteExcel(
-    resultados: ResultadoValidacion[],
+export async function generarReporteExcelSideBySide(
+    resultados: ResultadoSideBySide[],
     rutaSalida: string
 ): Promise<void> {
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Reporte Anonimización');
+    const worksheet = workbook.addWorksheet('Validación BUC');
 
-    // Definir columnas
     worksheet.columns = [
         { header: 'RUT', key: 'RUT', width: 15 },
-        { header: 'Nombre esperado', key: 'Nombre esperado', width: 35 },
-        { header: 'Nombre en TEST', key: 'Nombre en TEST', width: 35 },
-        { header: 'Nombre en PROD', key: 'Nombre en PROD', width: 35 },
-        { header: 'ANONIMIZADO TEST', key: 'ANONIMIZADO TEST', width: 18 },
-        { header: 'ANONIMIZADO PROD', key: 'ANONIMIZADO PROD', width: 18 },
-        { header: 'ESTADO FINAL', key: 'ESTADO FINAL', width: 20 },
+        { header: 'Nombre Planilla', key: 'Nombre Esperado (Planilla)', width: 35 },
+        { header: 'Nombre ANON', key: 'N. Encontrado (ANON)', width: 35 },
+        { header: 'Nombre NO ANON', key: 'N. Encontrado (NO ANON)', width: 35 },
+        { header: 'Coinciden?', key: 'Coinciden?', width: 12 },
+        { header: 'Observaciones', key: 'Observaciones', width: 40 }
     ];
 
-    // Estilo del encabezado
-    worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
-    worksheet.getRow(1).fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: 'FF4472C4' },
-    };
-    worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
-
-    // Agregar datos con formato condicional
-    resultados.forEach((resultado) => {
-        const row = worksheet.addRow(resultado);
-
-        // Color para ANONIMIZADO TEST
-        const cellTest = row.getCell('ANONIMIZADO TEST');
-        cellTest.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: {
-                argb: resultado['ANONIMIZADO TEST'] === 'SÍ' ? 'FF00FF00' : 'FFFF0000',
-            },
-        };
-        cellTest.font = { bold: true, color: { argb: 'FF000000' } };
-
-        // Color para ANONIMIZADO PROD
-        const cellProd = row.getCell('ANONIMIZADO PROD');
-        cellProd.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: {
-                argb: resultado['ANONIMIZADO PROD'] === 'NO' ? 'FF00FF00' : 'FFFF0000',
-            },
-        };
-        cellProd.font = { bold: true, color: { argb: 'FF000000' } };
-
-        // Color para ESTADO FINAL
-        const cellEstado = row.getCell('ESTADO FINAL');
-        const esValido = resultado['ESTADO FINAL'] === '✅ VÁLIDO';
-        cellEstado.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: esValido ? 'FF92D050' : 'FFFFC000' },
-        };
-        cellEstado.font = { bold: true, color: { argb: 'FF000000' } };
+    resultados.forEach(res => {
+        const row = worksheet.addRow(res);
+        const cell = row.getCell(5);
+        if (res['Coinciden?'] === 'SÍ') {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } };
+            cell.font = { color: { argb: 'FF006100' } };
+        } else {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } };
+            cell.font = { color: { argb: 'FF9C0006' } };
+        }
     });
 
-    // Crear directorio si no existe
-    const path = require('path');
-    const directorioSalida = path.dirname(rutaSalida);
-    if (!fs.existsSync(directorioSalida)) {
-        fs.mkdirSync(directorioSalida, { recursive: true });
-    }
+    const dir = path.dirname(rutaSalida);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
-    // Guardar archivo
     await workbook.xlsx.writeFile(rutaSalida);
-    console.log(`\n📄 Reporte generado: ${rutaSalida}`);
+    console.log(`📄 Reporte Excel generado: ${rutaSalida}`);
 }

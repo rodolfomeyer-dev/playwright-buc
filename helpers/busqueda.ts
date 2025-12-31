@@ -1,138 +1,82 @@
-import { Page, Locator } from '@playwright/test';
 
-/**
- * Busca un RUT en BUC y retorna el nombre encontrado
- * 
- * @param page - Página autenticada en BUC
- * @param rut - RUT a buscar (sin formato, solo números)
- * @returns Nombre encontrado o 'NO_ENCONTRADO'
- */
-export async function buscarPorRUT(page: Page, rut: string): Promise<string> {
-    // Limpiar RUT: solo números y K, SIN puntos, SIN guión
-    const rutLimpio = rut.replace(/[^0-9Kk]/g, '');
+import { Page, Locator, expect } from '@playwright/test';
 
-    console.log(`   🔍 Buscando RUT (sin formato): ${rutLimpio}`);
-
-    // Seleccionar tipo de búsqueda
-    try {
-        const selectBusqueda = page.locator('select').first();
-        await selectBusqueda.waitFor({ state: 'visible', timeout: 10000 });
-        await selectBusqueda.click();
-        await page.waitForTimeout(500);
-
-        console.log('   → Seleccionando "CLIENTES POR SU RUT"...');
-        await selectBusqueda.selectOption({ label: 'CLIENTES POR SU RUT' });
-        await page.waitForTimeout(1000); // Esperar a que se habilite el campo
-    } catch (error) {
-        console.log('   ⚠️ Error al seleccionar dropdown');
-        throw error;
-    }
-
-    // Buscar campo de búsqueda VISIBLE (excluir hidden)
-    console.log(`   → Ingresando RUT: ${rutLimpio}...`);
-
-    let campoBusqueda: Locator | undefined;
-
-    // Método 1: Buscar inputs visibles con filter
-    try {
-        const inputs = page.locator('input[type="text"]');
-        const count = await inputs.count();
-
-        for (let i = 0; i < count; i++) {
-            const input = inputs.nth(i);
-            const isVisible = await input.isVisible();
-            const isEnabled = await input.isEnabled();
-
-            if (isVisible && isEnabled) {
-                campoBusqueda = input;
-                console.log(`   → Campo encontrado (input visible #${i})`);
-                break;
-            }
-        }
-    } catch (e) {
-        console.log('   ⚠️ Error al buscar campo:', e);
-    }
-
-    if (!campoBusqueda) {
-        throw new Error('❌ No se pudo encontrar el campo de búsqueda visible');
-    }
-
-    // Ingresar RUT
-    await campoBusqueda.click();
-    await page.waitForTimeout(300);
-    await campoBusqueda.clear();
-    await campoBusqueda.fill(rutLimpio);
-    await page.waitForTimeout(500);
-
-    // Verificar
-    const valorIngresado = await campoBusqueda.inputValue();
-    console.log(`   → Valor ingresado: "${valorIngresado}"`);
-
-    if (valorIngresado !== rutLimpio) {
-        console.log(`   ⚠️ Reintentando con type()...`);
-        await campoBusqueda.clear();
-        await campoBusqueda.type(rutLimpio);
-    }
-
-    // Buscar y hacer clic en botón BUSCAR
-    console.log('   → Haciendo clic en BUSCAR...');
-
-    try {
-        // Buscar el botón usando múltiples selectores
-        const botonBuscar = page.locator('button:has-text("BUSCAR"), input[value="BUSCAR"], [id*="Buscar"], [class*="buscar"]').first();
-
-        // Asegurar que esté visible y hacer scroll si es necesario
-        await botonBuscar.scrollIntoViewIfNeeded();
-        await botonBuscar.waitFor({ state: 'visible', timeout: 10000 });
-
-        // Intentar clic normal primero
-        try {
-            await botonBuscar.click({ timeout: 5000 });
-        } catch {
-            // Si falla, usar force click
-            console.log('   ⚠️ Clic normal falló, usando force click...');
-            await botonBuscar.click({ force: true });
-        }
-    } catch (error) {
-        console.error('   ❌ Error al hacer clic en BUSCAR:', error);
-        throw new Error('No se pudo hacer clic en el botón BUSCAR');
-    }
-
-    // Esperar resultados
-    try {
-        const resultadoVisible = await page.getByText(rutLimpio).isVisible({ timeout: 40000 });
-
-        if (!resultadoVisible) {
-            console.log(`   ❌ RUT ${rutLimpio} no encontrado`);
-            return 'NO_ENCONTRADO';
-        }
-
-        const nombre = await page
-            .locator('td, div, span')
-            .filter({ hasText: /[A-Z]{3,}/ })
-            .first()
-            .innerText();
-
-        const nombreLimpio = nombre.trim();
-        console.log(`   ✅ Nombre encontrado: ${nombreLimpio}`);
-        return nombreLimpio;
-
-    } catch (error) {
-        console.log(`   ⚠️ Error buscando RUT:`, error);
-        return 'ERROR_BUSQUEDA';
+async function esperarConexion(page: Page) {
+    while (true) {
+        if (await page.evaluate(() => navigator.onLine)) return;
+        console.log('   ⚠️ VPN desconectado...');
+        await page.waitForTimeout(5000);
     }
 }
 
-/**
- * Valida si un nombre está anonimizado
- */
-export function esAnonimizado(nombreReal: string, nombreEsperado: string): boolean {
-    if (nombreReal === 'NO_ENCONTRADO' || nombreReal === 'ERROR_BUSQUEDA') {
-        return false;
+async function infiniteRetry<T>(name: string, action: () => Promise<T>, page: Page): Promise<T> {
+    while (true) {
+        try { return await action(); } catch (error) {
+            console.log(`   🔄 ${name} Error: ${error.message}`);
+            await page.waitForTimeout(2000);
+            try { await page.reload(); } catch (e) { }
+        }
     }
+}
 
-    const realUpper = nombreReal.toUpperCase();
-    const esperadoUpper = nombreEsperado.toUpperCase();
+async function seleccionarTipoBusqueda(page: Page, tipo: 'RUT' | 'NOMBRE') {
+    const select = page.locator('select').first();
+    await select.waitFor({ state: 'visible' });
+    const option = tipo === 'RUT' ? 'CLIENTES POR SU RUT' : 'NOMBRE COMPLETO';
+    await select.selectOption({ label: option });
+}
 
-    return !esperadoUpper.includes(realUpper) && !realUpper.includes(esperadoUpper);
+export async function buscarPorRUT(page: Page, rut: string): Promise<string> {
+    return infiniteRetry(`RUT ${rut}`, async () => {
+        await seleccionarTipoBusqueda(page, 'RUT');
+        await page.locator('input[type="text"]:visible').first().fill(rut.replace(/[^0-9Kk]/g, ''));
+        await page.click('#Buscar');
+        const tabla = page.locator('table').first();
+        await tabla.waitFor({ state: 'visible', timeout: 15000 });
+        const rows = tabla.locator('tr');
+        if (await rows.count() > 0) {
+            return (await rows.last().locator('td').nth(1).innerText()).trim();
+        }
+        return 'NO_ENCONTRADO';
+    }, page);
+}
+
+export async function buscarPorNombre(page: Page, n: string, p: string, m: string): Promise<{ nombre: string, rut: string }[]> {
+    return infiniteRetry(`Nombre: ${n} ${p}`, async () => {
+        console.log(`   🔍 [${n}] [${p}] [${m}]`);
+        await seleccionarTipoBusqueda(page, 'NOMBRE');
+        await page.locator('#aguja').fill(n);
+        await page.locator('#apellidoP').fill(p);
+        await page.locator('#apellidoM').fill(m);
+        await page.press('#apellidoM', 'Tab');
+        await page.click('#Buscar');
+
+        const tabla = page.locator('table').first();
+        const msg = page.locator('text=/no se han encontrado|no existen/i');
+        await Promise.race([tabla.waitFor({ state: 'visible', timeout: 20000 }), msg.waitFor({ state: 'visible', timeout: 20000 })]);
+
+        if (await msg.isVisible()) return [];
+
+        const resultados = [];
+        const filas = await tabla.locator('tr').all();
+        for (const fila of filas) {
+            const celdas = await fila.locator('td').all();
+            if (celdas.length >= 2) {
+                let rutRaw = (await celdas[0].innerText()).trim();
+                let nombreRaw = "";
+
+                // Buscador de nombre dinámico (User Feedback: columnas variables)
+                for (let i = 1; i < celdas.length; i++) {
+                    const text = (await celdas[i].innerText()).trim();
+                    if (text && !text.includes('-') && text.length > nombreRaw.length && !text.match(/^[0-9]+$/)) {
+                        nombreRaw = text;
+                    }
+                }
+
+                const rutLimpio = rutRaw.replace(/[^0-9Kk]/g, '').toUpperCase();
+                if (rutLimpio) resultados.push({ rut: rutLimpio, nombre: nombreRaw });
+            }
+        }
+        return resultados;
+    }, page);
 }

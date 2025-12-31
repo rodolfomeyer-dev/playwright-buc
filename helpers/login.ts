@@ -1,26 +1,34 @@
 import { Page } from '@playwright/test';
 
+export interface ConfigEntorno {
+    readonly url: string;
+    readonly usuario: string;
+    readonly password: string;
+    readonly passwordEncoded: string;
+    readonly nombre: string;
+}
+
 /**
  * Configuración de entornos BUC
  */
-export const ENTORNOS = {
-    TEST: {
-        url: 'http://192.168.84.40/FrontEnd/?usuEjeFor=mgarayv',
-        usuario: 'mgarayv',
-        password: 'Equipo111',
-        passwordEncoded: 'Equipo111', // No tiene caracteres especiales
-        nombre: 'TEST (Anonimizado)',
-    },
-    PROD: {
-        url: 'http://192.168.154.54:8070/HpUxaLinux/BUC/buc/?usuEjeFor=amunoz',
+export const ENTORNOS: Record<string, ConfigEntorno> = {
+    ANONIMIZADA: {
+        url: 'http://192.168.154.221:8070/HpUxaLinux/BUC/buc/?usuEjeFor=mgarayv',
         usuario: 'pruebas-bas2',
         password: 'Equipo.1125#',
         passwordEncoded: 'Equipo.1125%23', // # codificado
-        nombre: 'PRODUCCIÓN',
+        nombre: 'ANONIMIZADA (TEST)',
+    },
+    NO_ANONIMIZADA: {
+        url: 'http://192.168.154.54:8070/HpUxaLinux/BUC/buc/?usuEjeFor=amunoz',
+        usuario: 'mgarayv',
+        password: 'Equipo123',
+        passwordEncoded: 'Equipo123',
+        nombre: 'NO ANONIMIZADA (PROD)',
     },
 } as const;
 
-export type Entorno = keyof typeof ENTORNOS;
+export type Entorno = 'ANONIMIZADA' | 'NO_ANONIMIZADA';
 
 /**
  * Login en BUC usando formulario HTML de la página web
@@ -35,11 +43,8 @@ export async function loginBUC(page: Page, entorno: Entorno): Promise<void> {
     console.log(`🔐 Iniciando login en ${config.nombre}...`);
 
     // PASO 1: Navegar a la URL 
-    // Para PROD, usar credenciales en URL (soluciona error 403)
-    // Para TEST, httpCredentials del contexto es suficiente
-    const urlFinal = entorno === 'PROD'
-        ? config.url.replace('http://', `http://${config.usuario}:${config.passwordEncoded}@`)
-        : config.url;
+    // Usar credenciales en URL para ambos (soluciona error 403 y problemas de sesión)
+    const urlFinal = config.url.replace('http://', `http://${config.usuario}:${config.passwordEncoded}@`);
 
     console.log(`   → Navegando a ${entorno}...`);
 
@@ -48,59 +53,51 @@ export async function loginBUC(page: Page, entorno: Entorno): Promise<void> {
         waitUntil: 'domcontentloaded',
     });
 
-    // PASO 2: Verificar si ya está en la página principal (autenticación NTLM exitosa)
-    console.log('   → Verificando estado de autenticación...');
+    // PASO 2: Verificar si ya está en la página principal 
+    console.log('   → Verificando estado de autenticación (buscando selectores de búsqueda)...');
 
     try {
-        // Intentar encontrar la página principal
-        const paginaPrincipal = await page.locator('text=/busqueda avanzada/i').isVisible({ timeout: 5000 });
+        // Intentar encontrar la página principal por el dropdown o el título
+        const dropdownPresente = await page.locator('select').first().isVisible({ timeout: 10000 });
+        const moduloBuc = await page.locator('text=/MODULO BUC/i').isVisible({ timeout: 5000 });
 
-        if (paginaPrincipal) {
-            console.log('   ✅ Ya autenticado (httpCredentials funcionó)');
-            console.log(`✅ Login exitoso en ${config.nombre}`);
-            return; // Ya está logueado, salir
+        if (dropdownPresente || moduloBuc) {
+            console.log(`   ✅ Ya autenticado en ${config.nombre}`);
+            return;
         }
     } catch (error) {
-        // No está en página principal, intentar formulario HTML
-        console.log('   → No está en página principal, buscando formulario HTML...');
+        console.log('   → No se detectó sesión activa inmediata.');
     }
 
-    // PASO 3: Si llegamos aquí, buscar y llenar el formulario HTML de login
+    // PASO 3: Si llegamos aquí, buscar y llenar el formulario HTML de login (NTLM fallback)
+    console.log(`   → Intentando fallback de formulario...`);
     try {
-        // Esperar a que aparezca el campo de usuario
-        await page.waitForSelector('input[placeholder*="Nombre de usuario"], input[name*="usuario"], input[type="text"]', {
-            timeout: 10000
-        });
+        const campoUsuario = page.locator('input[name*="user"], input[name*="usuario"], input[type="text"]').first();
+        const existe = await campoUsuario.isVisible({ timeout: 10000 });
 
-        console.log('   → Formulario HTML encontrado, ingresando credenciales...');
+        if (existe) {
+            console.log('   → Formulario HTML encontrado, ingresando credenciales...');
+            await campoUsuario.fill(config.usuario);
+            await page.locator('input[type="password"]').first().fill(config.password);
 
-        // Llenar campo de usuario
-        const campoUsuario = page.locator('input[placeholder*="Nombre de usuario"]').first();
-        await campoUsuario.fill(config.usuario);
-
-        // Llenar campo de contraseña
-        const campoPassword = page.locator('input[type="password"]').first();
-        await campoPassword.fill(config.password);
-
-        // Pequeña espera para asegurar que los campos se llenaron
-        await page.waitForTimeout(500);
-
-        // Hacer clic en botón "Acceder"
-        const botonAcceder = page.getByRole('button', { name: /acceder/i });
-
-        console.log('   → Haciendo clic en "Acceder"...');
-        await Promise.all([
-            page.waitForNavigation({ waitUntil: 'networkidle', timeout: 90000 }),
-            botonAcceder.click(),
-        ]);
-
+            const botonAcceder = page.locator('button, input[type="submit"]').filter({ hasText: /acceder|entrar|buscar/i }).first();
+            await Promise.all([
+                page.waitForNavigation({ waitUntil: 'networkidle', timeout: 30000 }).catch(() => { }),
+                botonAcceder.click(),
+            ]);
+        }
     } catch (error) {
-        console.error('   ❌ Error al buscar/llenar formulario:', error);
-        throw new Error(`Fallo al hacer login en ${config.nombre}: ${error}`);
+        console.log('   ℹ️ No se encontró formulario de login HTML adicional.');
     }
 
-    // PASO 4: Verificar que estamos en la página principal
-    console.log('   → Verificando acceso exitoso...');
-    await page.waitForSelector('text=/busqueda avanzada/i', { timeout: 90000 });
-    console.log(`✅ Login exitoso en ${config.nombre}`);
+    // PASO 4: Verificación Final
+    try {
+        await page.waitForSelector('select', { timeout: 30000 });
+        console.log(`✅ Login exitoso en ${config.nombre}`);
+    } catch (error) {
+        console.error(`   ❌ Falló verificación de login en ${config.nombre}.`);
+        // Tomar screenshot de error si estamos en test
+        await page.screenshot({ path: `evidencias/error-login-${entorno}.png` }).catch(() => { });
+        throw new Error(`No se pudo cargar la página de búsqueda en ${config.nombre}`);
+    }
 }

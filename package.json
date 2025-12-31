@@ -8,7 +8,12 @@
         "test:ui": "playwright test --ui",
         "test:headed": "playwright test --headed",
         "test:debug": "playwright test --debug",
-        "report": "playwright show-report"
+        "test:sheets": "playwright test tests/validar-por-especificacion.spec.ts",
+        "dashboard:sync:sheets": "powershell -Command \"if (Test-Path evidencias/REPORTE_POR_ESPECIFICACION.json) { Copy-Item -Path evidencias/REPORTE_POR_ESPECIFICACION.json -Destination dashboard/public/data.json -Force }\"",
+        "dashboard:sheets": "npm run test:sheets && npm run dashboard:sync:sheets && cd dashboard && npm run dev",
+        "report": "playwright show-report",
+        "dashboard:sync": "powershell -Command \"if (Test-Path evidencias/REPORTE_ANONIMIZACION.json) { Copy-Item -Path evidencias/REPORTE_ANONIMIZACION.json -Destination dashboard/public/data.json -Force }\"",
+        "dashboard": "npm run dashboard:sync && cd dashboard && npm run dev"
     },
     "keywords": [
         "playwright",
